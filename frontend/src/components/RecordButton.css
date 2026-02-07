@@ -1,0 +1,39 @@
+.record-button {
+    position: fixed;
+    bottom: 90px;
+    right: var(--spacing-lg);
+    width: 72px;
+    height: 72px;
+    border-radius: var(--radius-full);
+    background: var(--gradient-primary);
+    color: white;
+    font-size: 2rem;
+    box-shadow: var(--shadow-lg);
+    z-index: var(--z-fixed);
+    transition: all var(--transition-base);
+    border: 3px solid var(--bg-primary);
+}
+
+.record-button:hover {
+    transform: scale(1.1) rotateZ(5deg);
+    box-shadow: var(--shadow-lg), var(--shadow-neon);
+}
+
+.record-button:active {
+    transform: scale(0.95);
+}
+
+.record-icon {
+    display: block;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@media (max-width: 768px) {
+    .record-button {
+        bottom: 80px;
+        right: var(--spacing-md);
+        width: 64px;
+        height: 64px;
+        font-size: 1.75rem;
+    }
+}
