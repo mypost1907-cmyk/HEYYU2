@@ -26,7 +26,26 @@ const app = express();
 connectDB();
 
 // Middleware
-app.use(cors());
+const corsOptions = {
+    origin: function (origin, callback) {
+        const allowedOrigins = [
+            'http://localhost:5173',
+            'http://localhost:3000',
+            'https://mypost1907-cmyk.github.io',
+            process.env.FRONTEND_URL
+        ].filter(Boolean);
+
+        // Allow requests with no origin (mobile apps, Postman, etc.)
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(null, true); // Allow all for now, can restrict later
+        }
+    },
+    credentials: true
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -41,10 +60,26 @@ app.use('/api/replies', replyRoutes);
 app.use('/api/reactions', reactionRoutes);
 
 // Health check
+app.get('/', (req, res) => {
+    res.json({
+        status: 'ok',
+        app: 'HEYYU2 API',
+        message: 'Backend is running successfully! 🎙️',
+        timestamp: new Date().toISOString(),
+        endpoints: {
+            auth: '/api/auth',
+            posts: '/api/posts',
+            users: '/api/users',
+            replies: '/api/replies',
+            reactions: '/api/reactions'
+        }
+    });
+});
+
 app.get('/api/health', (req, res) => {
     res.json({
         status: 'ok',
-        message: 'Vibe Social API is running',
+        message: 'HEYYU2 API is running',
         timestamp: new Date().toISOString()
     });
 });
