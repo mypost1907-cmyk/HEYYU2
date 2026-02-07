@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import './Feed.css';
 import VoicePost from './VoicePost';
+import { getApiUrl, API_ENDPOINTS } from '../utils/api';
 
 const Feed = () => {
     const [posts, setPosts] = useState([]);
@@ -16,7 +17,8 @@ const Feed = () => {
 
     const fetchPosts = async () => {
         try {
-            const response = await fetch(`http://localhost:5000/api/posts/feed?page=${page}&limit=10`);
+            setLoading(true);
+            const response = await fetch(getApiUrl(`${API_ENDPOINTS.FEED}?page=${page}&limit=10`));
             const data = await response.json();
 
             if (data.success) {

@@ -10,6 +10,7 @@ import Navigation from './components/Navigation';
 import AuthModal from './components/AuthModal';
 import RecordModal from './components/RecordModal';
 import { getToken } from './utils/auth';
+import { getApiUrl, API_ENDPOINTS } from './utils/api';
 
 // Google Client ID - Bu değeri .env dosyasından alacağız
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'your-google-client-id';
@@ -34,7 +35,7 @@ function App() {
   const fetchUserProfile = async () => {
     try {
       const token = getToken();
-      const response = await fetch('http://localhost:5000/api/auth/me', {
+      const response = await fetch(getApiUrl(API_ENDPOINTS.ME), {
         headers: {
           'Authorization': `Bearer ${token}`
         }

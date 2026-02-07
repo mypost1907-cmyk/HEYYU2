@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import './Trending.css';
 import VoicePost from './VoicePost';
+import { getApiUrl, API_ENDPOINTS } from '../utils/api';
 
 const Trending = () => {
     const [posts, setPosts] = useState([]);
@@ -15,7 +16,7 @@ const Trending = () => {
     const fetchTrendingPosts = async () => {
         try {
             setLoading(true);
-            const response = await fetch(`http://localhost:5000/api/posts/trending?timeframe=${timeframe}`);
+            const response = await fetch(getApiUrl(`${API_ENDPOINTS.TRENDING}?timeframe=${timeframe}`));
             const data = await response.json();
 
             if (data.success) {

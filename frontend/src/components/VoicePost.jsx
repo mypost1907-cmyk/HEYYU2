@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import './VoicePost.css';
 import Waveform from './Waveform';
+import { getApiUrl, API_ENDPOINTS } from '../utils/api';
 
 const VoicePost = ({ post, autoPlay = false }) => {
     const [isPlaying, setIsPlaying] = useState(false);
@@ -65,10 +66,11 @@ const VoicePost = ({ post, autoPlay = false }) => {
 
     const trackListen = async () => {
         try {
-            await fetch(`http://localhost:5000/api/posts/${post._id}/listen`, {
+            await fetch(getApiUrl(API_ENDPOINTS.POST_LISTEN(post._id)), {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ completed: false })
+                headers: {
+                    'Content-Type': 'application/json'
+                }
             });
         } catch (error) {
             console.error('Failed to track listen:', error);
@@ -167,7 +169,7 @@ const VoicePost = ({ post, autoPlay = false }) => {
             {/* Hidden Audio Element */}
             <audio
                 ref={audioRef}
-                src={`http://localhost:5000${post.audioUrl}`}
+                src={API_ENDPOINTS.AUDIO_FILE(post.audioUrl)}
                 onTimeUpdate={handleTimeUpdate}
                 onEnded={handleEnded}
                 preload="metadata"

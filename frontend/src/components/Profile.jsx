@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import './Profile.css';
 import VoicePost from './VoicePost';
 import { getToken, removeToken } from '../utils/auth';
+import { getApiUrl, API_ENDPOINTS } from '../utils/api';
 
 const Profile = ({ user, onLogout }) => {
     const [myPosts, setMyPosts] = useState([]);
@@ -23,7 +24,7 @@ const Profile = ({ user, onLogout }) => {
     const fetchMyPosts = async () => {
         try {
             const token = getToken();
-            const response = await fetch(`http://localhost:5000/api/posts/feed?userId=${user.id}`, {
+            const response = await fetch(getApiUrl(`${API_ENDPOINTS.FEED}?userId=${user.id}`), {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }

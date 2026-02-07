@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import './RecordModal.css';
+import { getApiUrl, API_ENDPOINTS } from '../utils/api';
 
 const RecordModal = ({ onClose, onSuccess }) => {
     const [isRecording, setIsRecording] = useState(false);
@@ -133,7 +134,7 @@ const RecordModal = ({ onClose, onSuccess }) => {
             formData.append('isAnonymous', isAnonymous);
 
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:5000/api/posts', {
+            const response = await fetch(getApiUrl(API_ENDPOINTS.CREATE_POST), {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`

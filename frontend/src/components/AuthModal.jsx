@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { GoogleLogin } from '@react-oauth/google';
 import './AuthModal.css';
 import { setToken } from '../utils/auth';
+import { getApiUrl, API_ENDPOINTS } from '../utils/api';
 
 const AuthModal = ({ onClose, onSuccess }) => {
     const [isLogin, setIsLogin] = useState(true);
@@ -20,12 +21,12 @@ const AuthModal = ({ onClose, onSuccess }) => {
         setLoading(true);
 
         try {
-            const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
+            const endpoint = isLogin ? API_ENDPOINTS.LOGIN : API_ENDPOINTS.REGISTER;
             const body = isLogin
                 ? { email: formData.email, password: formData.password }
                 : formData;
 
-            const response = await fetch(`http://localhost:5000${endpoint}`, {
+            const response = await fetch(getApiUrl(endpoint), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)
@@ -51,7 +52,7 @@ const AuthModal = ({ onClose, onSuccess }) => {
             setLoading(true);
             setError('');
 
-            const response = await fetch('http://localhost:5000/api/auth/google', {
+            const response = await fetch(getApiUrl(API_ENDPOINTS.GOOGLE_AUTH), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
