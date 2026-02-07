@@ -2,9 +2,13 @@ import { useState, useEffect } from 'react';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import './index.css';
 import Feed from './components/Feed';
+import Trending from './components/Trending';
+import Rooms from './components/Rooms';
+import Profile from './components/Profile';
 import RecordButton from './components/RecordButton';
 import Navigation from './components/Navigation';
 import AuthModal from './components/AuthModal';
+import RecordModal from './components/RecordModal';
 import { getToken } from './utils/auth';
 
 // Google Client ID - Bu değeri .env dosyasından alacağız
@@ -14,7 +18,9 @@ function App() {
   const [currentView, setCurrentView] = useState('home');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showRecordModal, setShowRecordModal] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
+  const [refreshFeed, setRefreshFeed] = useState(0);
 
   useEffect(() => {
     // Check if user is authenticated on mount
@@ -53,10 +59,19 @@ function App() {
     if (!isAuthenticated) {
       setShowAuthModal(true);
     } else {
-      // Open record modal
-      // TODO: Implement record modal
-      console.log('Open record modal');
+      setShowRecordModal(true);
     }
+  };
+
+  const handleRecordSuccess = () => {
+    setShowRecordModal(false);
+    setRefreshFeed(prev => prev + 1);
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setUserProfile(null);
+    setCurrentView('home');
   };
 
   return (
@@ -64,10 +79,10 @@ function App() {
       <div className="app">
         {/* Main Content */}
         <main className="main-content">
-          {currentView === 'home' && <Feed />}
-          {currentView === 'trending' && <div className="container"><h2>Trending 🔥</h2></div>}
-          {currentView === 'rooms' && <div className="container"><h2>Voice Rooms 💬</h2></div>}
-          {currentView === 'profile' && <div className="container"><h2>Profile 👤</h2></div>}
+          {currentView === 'home' && <Feed key={refreshFeed} />}
+          {currentView === 'trending' && <Trending />}
+          {currentView === 'rooms' && <Rooms />}
+          {currentView === 'profile' && <Profile user={userProfile} onLogout={handleLogout} />}
         </main>
 
         {/* Record Button - Floating */}
@@ -84,6 +99,14 @@ function App() {
           <AuthModal
             onClose={() => setShowAuthModal(false)}
             onSuccess={handleAuthSuccess}
+          />
+        )}
+
+        {/* Record Modal */}
+        {showRecordModal && (
+          <RecordModal
+            onClose={() => setShowRecordModal(false)}
+            onSuccess={handleRecordSuccess}
           />
         )}
       </div>

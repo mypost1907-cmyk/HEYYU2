@@ -1,0 +1,105 @@
+.trending-container {
+    width: 100%;
+    max-width: 680px;
+    margin: 0 auto;
+    padding-bottom: 100px;
+}
+
+.trending-header {
+    padding: var(--spacing-xl) var(--spacing-md) var(--spacing-lg);
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: var(--z-sticky);
+    background: var(--bg-primary);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.trending-header h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    margin-bottom: var(--spacing-xs);
+}
+
+.trending-subtitle {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    margin-bottom: var(--spacing-lg);
+}
+
+.timeframe-selector {
+    display: flex;
+    gap: var(--spacing-sm);
+    justify-content: center;
+    background: var(--bg-tertiary);
+    padding: 4px;
+    border-radius: var(--radius-full);
+    width: fit-content;
+    margin: 0 auto;
+}
+
+.timeframe-selector button {
+    padding: 0.5rem 1.25rem;
+    border-radius: var(--radius-full);
+    background: transparent;
+    color: var(--text-secondary);
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-base);
+    font-size: 0.875rem;
+}
+
+.timeframe-selector button.active {
+    background: var(--gradient-primary);
+    color: white;
+}
+
+.timeframe-selector button:hover:not(.active) {
+    color: var(--text-primary);
+}
+
+.trending-content {
+    padding: var(--spacing-md) 0;
+}
+
+.trending-item {
+    position: relative;
+    margin-bottom: var(--spacing-md);
+}
+
+.trending-rank {
+    position: absolute;
+    top: var(--spacing-md);
+    left: var(--spacing-md);
+    background: var(--gradient-primary);
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1rem;
+    z-index: 1;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+@media (max-width: 768px) {
+    .trending-header h1 {
+        font-size: 1.75rem;
+    }
+
+    .timeframe-selector button {
+        padding: 0.4rem 1rem;
+        font-size: 0.813rem;
+    }
+
+    .trending-rank {
+        width: 32px;
+        height: 32px;
+        font-size: 0.875rem;
+    }
+}
