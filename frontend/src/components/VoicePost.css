@@ -168,3 +168,58 @@
         font-size: 1.125rem;
     }
 }
+
+/* Playing state for the play button */
+.play-button.playing {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    animation: pulse-red 1.5s ease-in-out infinite;
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+}
+
+@keyframes pulse-red {
+    0%, 100% { box-shadow: 0 0 12px rgba(239, 68, 68, 0.4); }
+    50% { box-shadow: 0 0 24px rgba(239, 68, 68, 0.8); }
+}
+
+/* Action button active (liked) state */
+.action-btn.active {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(252, 165, 165, 0.1));
+    border-color: #ef4444;
+    color: #f87171;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.25);
+}
+
+/* Live subtitle karaoke enhancement */
+.live-subtitle {
+    background: var(--gradient-glass);
+    border: 1px solid rgba(192, 132, 252, 0.3);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    text-align: center;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #c084fc;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-shadow: 0 0 16px rgba(192, 132, 252, 0.6);
+    animation: subtitle-glow 1.5s ease-in-out infinite;
+}
+
+@keyframes subtitle-glow {
+    0%, 100% { text-shadow: 0 0 10px rgba(192, 132, 252, 0.4); }
+    50% { text-shadow: 0 0 22px rgba(192, 132, 252, 0.9), 0 0 40px rgba(236, 72, 153, 0.3); }
+}
+
+/* Verified badge animation */
+.verified-badge {
+    display: inline-block;
+    animation: badge-pop 0.3s ease-out;
+}
+
+@keyframes badge-pop {
+    0% { transform: scale(0); }
+    70% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
