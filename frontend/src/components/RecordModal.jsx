@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import './RecordModal.css';
-import { getApiUrl, API_ENDPOINTS } from '../utils/api';
+import { getApiUrl, API_ENDPOINTS, isDemoMode } from '../utils/api';
+import { addDemoPost } from '../utils/demoService';
 
 const RecordModal = ({ onClose, onSuccess }) => {
     const [isRecording, setIsRecording] = useState(false);
@@ -11,6 +12,7 @@ const RecordModal = ({ onClose, onSuccess }) => {
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setError] = useState('');
     const [isAnonymous, setIsAnonymous] = useState(false);
+    const [selectedEffect, setSelectedEffect] = useState('normal');
 
     const mediaRecorderRef = useRef(null);
     const audioChunksRef = useRef([]);
@@ -127,11 +129,32 @@ const RecordModal = ({ onClose, onSuccess }) => {
         setError('');
 
         try {
+            if (isDemoMode()) {
+                // Demo Mode Local Save Integration
+                const newPost = addDemoPost(
+                    audioBlob,
+                    duration || 5, // fallback duration
+                    transcript || 'Yeni bir ses paylaştı 🎙️',
+                    selectedEffect,
+                    isAnonymous
+                );
+                
+                // Simulate network latency
+                setTimeout(() => {
+                    onSuccess(newPost);
+                    onClose();
+                    setIsProcessing(false);
+                }, 800);
+                return;
+            }
+
+            // Online Mode Server Upload
             const formData = new FormData();
             formData.append('audio', audioBlob, 'voice-post.webm');
-            formData.append('duration', duration);
+            formData.append('duration', duration * 1000); // convert to ms
             formData.append('transcript', transcript);
             formData.append('isAnonymous', isAnonymous);
+            formData.append('effect', selectedEffect);
 
             const token = localStorage.getItem('token');
             const response = await fetch(getApiUrl(API_ENDPOINTS.CREATE_POST), {
@@ -154,7 +177,9 @@ const RecordModal = ({ onClose, onSuccess }) => {
             setError('Bir hata oluştu. Lütfen tekrar deneyin.');
             console.error('Error posting:', err);
         } finally {
-            setIsProcessing(false);
+            if (!isDemoMode()) {
+                setIsProcessing(false);
+            }
         }
     };
 
@@ -162,8 +187,17 @@ const RecordModal = ({ onClose, onSuccess }) => {
         setAudioBlob(null);
         setDuration(0);
         setTranscript('');
+        setSelectedEffect('normal');
         audioChunksRef.current = [];
     };
+
+    const effects = [
+        { id: 'normal', name: 'Normal', icon: '🎤' },
+        { id: 'robot', name: 'Robot', icon: '🤖' },
+        { id: 'echo', name: 'Yankı', icon: '🎵' },
+        { id: 'chipmunk', name: 'Tiz', icon: '🐿️' },
+        { id: 'deep', name: 'Kalın', icon: '🦍' }
+    ];
 
     return (
         <div className="modal-overlay" onClick={onClose}>
@@ -171,7 +205,7 @@ const RecordModal = ({ onClose, onSuccess }) => {
                 <button className="modal-close" onClick={onClose}>✕</button>
 
                 <h2 className="modal-title gradient-text">
-                    🎙️ Ses Kaydı
+                    🎙️ Sesini Duyur
                 </h2>
 
                 {/* Recording Controls */}
@@ -204,8 +238,25 @@ const RecordModal = ({ onClose, onSuccess }) => {
                     ) : (
                         <div className="playback-controls">
                             <audio src={URL.createObjectURL(audioBlob)} controls />
+                            
+                            {/* Voice Effects Panel */}
+                            <div className="effects-selector">
+                                <h4>Ses Efekti Seç:</h4>
+                                <div className="effects-grid">
+                                    {effects.map((eff) => (
+                                        <button
+                                            key={eff.id}
+                                            className={`effect-btn ${selectedEffect === eff.id ? 'active' : ''}`}
+                                            onClick={() => setSelectedEffect(eff.id)}
+                                        >
+                                            {eff.icon} {eff.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
                             <button className="btn-secondary" onClick={handleDiscard}>
-                                🗑️ Sil
+                                🗑️ Yeniden Kaydet
                             </button>
                         </div>
                     )}
@@ -242,7 +293,7 @@ const RecordModal = ({ onClose, onSuccess }) => {
                         disabled={isProcessing}
                         style={{ width: '100%', marginTop: '1rem' }}
                     >
-                        {isProcessing ? 'Paylaşılıyor...' : '📤 Paylaş'}
+                        {isProcessing ? 'Paylaşılıyor...' : '📤 Paylaş ✨'}
                     </button>
                 )}
 
@@ -265,3 +316,4 @@ RecordModal.propTypes = {
 };
 
 export default RecordModal;
+

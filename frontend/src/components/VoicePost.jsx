@@ -2,13 +2,27 @@ import { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import './VoicePost.css';
 import Waveform from './Waveform';
-import { getApiUrl, API_ENDPOINTS } from '../utils/api';
+import { getApiUrl, API_ENDPOINTS, isDemoMode } from '../utils/api';
+import { playDemoSpeech, stopDemoSpeech, toggleDemoLike, trackDemoListen } from '../utils/demoService';
 
 const VoicePost = ({ post, autoPlay = false }) => {
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
+    const [localLikes, setLocalLikes] = useState(post.stats?.reactionCounts?.fire || 0);
+    const [localLiked, setLocalLiked] = useState(post.liked || false);
+    const [localListens, setLocalListens] = useState(post.stats?.listens || 0);
+    const [activeSubtitle, setActiveSubtitle] = useState('');
+    
     const audioRef = useRef(null);
     const postRef = useRef(null);
+    const ttsTimerRef = useRef(null);
+
+    // Sync state if post prop changes
+    useEffect(() => {
+        setLocalLikes(post.stats?.reactionCounts?.fire || 0);
+        setLocalLiked(post.liked || false);
+        setLocalListens(post.stats?.listens || 0);
+    }, [post]);
 
     // Auto-play when in view
     useEffect(() => {
@@ -18,10 +32,8 @@ const VoicePost = ({ post, autoPlay = false }) => {
             (entries) => {
                 entries.forEach((entry) => {
                     if (entry.isIntersecting && entry.intersectionRatio > 0.7) {
-                        // In view - play
                         handlePlay();
                     } else if (isPlaying) {
-                        // Out of view - pause
                         handlePause();
                     }
                 });
@@ -33,23 +45,90 @@ const VoicePost = ({ post, autoPlay = false }) => {
             observer.observe(postRef.current);
         }
 
-        return () => observer.disconnect();
-    }, [autoPlay]);
+        return () => {
+            observer.disconnect();
+            if (ttsTimerRef.current) clearInterval(ttsTimerRef.current);
+        };
+    }, [autoPlay, isPlaying]);
+
+    // Cleanup active TTS speech/timer on unmount
+    useEffect(() => {
+        return () => {
+            if (ttsTimerRef.current) clearInterval(ttsTimerRef.current);
+        };
+    }, []);
 
     const handlePlay = () => {
-        if (audioRef.current) {
-            audioRef.current.play();
-            setIsPlaying(true);
+        // Clear existing TTS timers just in case
+        if (ttsTimerRef.current) clearInterval(ttsTimerRef.current);
 
-            // Track listen
-            trackListen();
+        const isMockPost = post.audioUrl && post.audioUrl.startsWith('mock_');
+
+        if (isDemoMode() && isMockPost) {
+            // TTS Playback for Demo Mock Posts
+            setIsPlaying(true);
+            setActiveSubtitle('');
+            
+            // Increment local listens
+            trackDemoListen(post._id);
+            setLocalListens(prev => prev + 1);
+
+            const isTtsActive = playDemoSpeech(
+                post,
+                (word) => {
+                    setActiveSubtitle(word);
+                },
+                () => {
+                    handleEnded();
+                },
+                () => {
+                    handleEnded();
+                }
+            );
+
+            if (isTtsActive) {
+                // Synthesize progress ticker matching post duration
+                const durationSec = post.duration / 1000;
+                let current = 0;
+                ttsTimerRef.current = setInterval(() => {
+                    current += 0.1;
+                    if (current >= durationSec) {
+                        clearInterval(ttsTimerRef.current);
+                        setCurrentTime(durationSec);
+                        handleEnded();
+                    } else {
+                        setCurrentTime(current);
+                    }
+                }, 100);
+            }
+        } else {
+            // Standard Audio Tag Playback for real audio files
+            if (audioRef.current) {
+                // Pause all other audios/TTS first
+                stopDemoSpeech();
+                
+                audioRef.current.play()
+                    .then(() => {
+                        setIsPlaying(true);
+                        trackListen();
+                    })
+                    .catch(err => console.error('Audio play failed:', err));
+            }
         }
     };
 
     const handlePause = () => {
-        if (audioRef.current) {
-            audioRef.current.pause();
+        const isMockPost = post.audioUrl && post.audioUrl.startsWith('mock_');
+
+        if (isDemoMode() && isMockPost) {
+            stopDemoSpeech();
+            if (ttsTimerRef.current) clearInterval(ttsTimerRef.current);
             setIsPlaying(false);
+        } else {
+            if (audioRef.current) {
+                audioRef.current.pause();
+                setIsPlaying(false);
+            }
         }
     };
 
@@ -62,9 +141,17 @@ const VoicePost = ({ post, autoPlay = false }) => {
     const handleEnded = () => {
         setIsPlaying(false);
         setCurrentTime(0);
+        setActiveSubtitle('');
+        if (ttsTimerRef.current) clearInterval(ttsTimerRef.current);
     };
 
     const trackListen = async () => {
+        setLocalListens(prev => prev + 1);
+        if (isDemoMode()) {
+            trackDemoListen(post._id);
+            return;
+        }
+
         try {
             await fetch(getApiUrl(API_ENDPOINTS.POST_LISTEN(post._id)), {
                 method: 'POST',
@@ -77,14 +164,51 @@ const VoicePost = ({ post, autoPlay = false }) => {
         }
     };
 
+    const handleLikeClick = async () => {
+        if (isDemoMode()) {
+            toggleDemoLike(post._id);
+            setLocalLiked(!localLiked);
+            setLocalLikes(prev => localLiked ? prev - 1 : prev + 1);
+            return;
+        }
+
+        // Live API reaction call
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(getApiUrl('/api/reactions'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    targetType: 'VoicePost',
+                    targetId: post._id,
+                    type: 'fire'
+                })
+            });
+
+            if (response.ok) {
+                setLocalLiked(!localLiked);
+                setLocalLikes(prev => localLiked ? prev - 1 : prev + 1);
+            }
+        } catch (error) {
+            console.error('Failed to toggle reaction:', error);
+        }
+    };
+
     const formatTime = (seconds) => {
         const mins = Math.floor(seconds / 60);
         const secs = Math.floor(seconds % 60);
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
 
-    // Get current word for subtitles
+    // Get current word for subtitles (Live audio file playback support)
     const getCurrentWord = () => {
+        if (isDemoMode() && post.audioUrl && post.audioUrl.startsWith('mock_')) {
+            return activeSubtitle || post.transcript?.text || '';
+        }
+
         if (!post.transcript?.words?.length) return post.transcript?.text || '';
 
         const currentWord = post.transcript.words.find(
@@ -95,7 +219,8 @@ const VoicePost = ({ post, autoPlay = false }) => {
     };
 
     const userData = post.userId || {};
-    const username = post.isAnonymous ? 'Anonymous' : (userData.username || 'Unknown');
+    const username = post.isAnonymous ? 'Anonymous' : (userData.username ? `@${userData.username}` : '@unknown');
+    const displayName = post.isAnonymous ? '🎭 Anonim' : (userData.name || 'Bilinmeyen Kullanıcı');
     const avatar = post.isAnonymous
         ? 'https://api.dicebear.com/7.x/avataaars/svg?seed=anonymous'
         : (userData.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default');
@@ -105,13 +230,21 @@ const VoicePost = ({ post, autoPlay = false }) => {
             <div className="post-header">
                 <img src={avatar} alt={username} className="avatar" />
                 <div className="post-user-info">
-                    <h3 className="username">{username}</h3>
-                    <p className="post-time">
+                    <h3 className="username">
+                        {displayName}
+                        {['Cem Yılmaz', 'Tarkan', 'Elon Musk', 'Gökhan'].includes(displayName) && (
+                            <span className="verified-badge" style={{ color: '#7c3aed', marginLeft: '5px' }}>✓</span>
+                        )}
+                    </h3>
+                    <span className="post-user-handle" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                        {username}
+                    </span>
+                    <p className="post-time" style={{ marginTop: '2px' }}>
                         {new Date(post.createdAt).toLocaleDateString()}
                     </p>
                 </div>
                 {post.isAnonymous && (
-                    <span className="anonymous-badge">🎭 Anonymous</span>
+                    <span className="anonymous-badge">🎭 Anonim</span>
                 )}
             </div>
 
@@ -127,7 +260,7 @@ const VoicePost = ({ post, autoPlay = false }) => {
                 {/* Audio Controls */}
                 <div className="audio-controls">
                     <button
-                        className="play-button"
+                        className={`play-button ${isPlaying ? 'playing' : ''}`}
                         onClick={isPlaying ? handlePause : handlePlay}
                     >
                         {isPlaying ? '⏸️' : '▶️'}
@@ -141,7 +274,7 @@ const VoicePost = ({ post, autoPlay = false }) => {
 
                 {/* Live Subtitles */}
                 {isPlaying && (
-                    <div className="live-subtitle">
+                    <div className="live-subtitle" style={{ color: 'var(--color-primary)', fontWeight: 'bold', margin: '0.5rem 0', minHeight: '1.5rem', textAlign: 'center' }}>
                         {getCurrentWord()}
                     </div>
                 )}
@@ -155,25 +288,29 @@ const VoicePost = ({ post, autoPlay = false }) => {
             {/* Stats & Actions */}
             <div className="post-footer">
                 <div className="post-stats">
-                    <span>👂 {post.stats?.listens || 0}</span>
+                    <span>👂 {localListens}</span>
                     <span>💬 {post.stats?.replyCount || 0}</span>
-                    <span>🔥 {post.stats?.reactionCounts?.fire || 0}</span>
+                    <span>🔥 {localLikes}</span>
                 </div>
                 <div className="post-actions">
-                    <button className="action-btn">💬 Reply</button>
-                    <button className="action-btn">🔥 React</button>
-                    <button className="action-btn">🔄 Duet</button>
+                    <button className="action-btn" onClick={() => alert('Sesli yorumlar yakında aktif olacak! 🎙️')}>💬 Yorum</button>
+                    <button className={`action-btn ${localLiked ? 'active' : ''}`} onClick={handleLikeClick}>
+                        🔥 {localLiked ? 'Beğenildi' : 'Beğen'}
+                    </button>
+                    <button className="action-btn" onClick={() => alert('Düet özelliği çok yakında! 🔄')}>🔄 Düet</button>
                 </div>
             </div>
 
-            {/* Hidden Audio Element */}
-            <audio
-                ref={audioRef}
-                src={API_ENDPOINTS.AUDIO_FILE(post.audioUrl)}
-                onTimeUpdate={handleTimeUpdate}
-                onEnded={handleEnded}
-                preload="metadata"
-            />
+            {/* Hidden Audio Element (only loaded/used for non-mock audio URLs) */}
+            {post.audioUrl && !post.audioUrl.startsWith('mock_') && (
+                <audio
+                    ref={audioRef}
+                    src={post.audioUrl.startsWith('blob:') ? post.audioUrl : API_ENDPOINTS.AUDIO_FILE(post.audioUrl)}
+                    onTimeUpdate={handleTimeUpdate}
+                    onEnded={handleEnded}
+                    preload="metadata"
+                />
+            )}
         </div>
     );
 };
@@ -184,3 +321,4 @@ VoicePost.propTypes = {
 };
 
 export default VoicePost;
+

@@ -11,3 +11,63 @@
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
+
+/* Connection Banner */
+.connection-banner {
+  padding: 8px 16px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  backdrop-filter: blur(12px);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  transition: all 0.3s ease;
+  letter-spacing: 0.5px;
+}
+
+.connection-banner.demo {
+  background: rgba(124, 58, 237, 0.15);
+  border-bottom: 1px solid rgba(124, 58, 237, 0.25);
+  color: #d8b4fe;
+}
+
+.connection-banner.live {
+  background: rgba(16, 185, 129, 0.15);
+  border-bottom: 1px solid rgba(16, 185, 129, 0.25);
+  color: #6ee7b7;
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.connection-banner.demo .pulse-dot {
+  background: #c084fc;
+  box-shadow: 0 0 8px #c084fc;
+  animation: pulse-purple 2s infinite;
+}
+
+.connection-banner.live .pulse-dot {
+  background: #34d399;
+  box-shadow: 0 0 8px #34d399;
+  animation: pulse-green 2s infinite;
+}
+
+@keyframes pulse-purple {
+  0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(192, 132, 252, 0.6); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(192, 132, 252, 0); }
+  100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(192, 132, 252, 0); }
+}
+
+@keyframes pulse-green {
+  0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.6); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(52, 211, 153, 0); }
+  100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+}

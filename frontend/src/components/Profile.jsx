@@ -3,7 +3,8 @@ import PropTypes from 'prop-types';
 import './Profile.css';
 import VoicePost from './VoicePost';
 import { getToken, removeToken } from '../utils/auth';
-import { getApiUrl, API_ENDPOINTS } from '../utils/api';
+import { getApiUrl, API_ENDPOINTS, isDemoMode } from '../utils/api';
+import { getDemoPosts } from '../utils/demoService';
 
 const Profile = ({ user, onLogout }) => {
     const [myPosts, setMyPosts] = useState([]);
@@ -17,22 +18,35 @@ const Profile = ({ user, onLogout }) => {
     useEffect(() => {
         if (user) {
             fetchMyPosts();
-            calculateStats();
         }
     }, [user]);
 
     const fetchMyPosts = async () => {
         try {
-            const token = getToken();
-            const response = await fetch(getApiUrl(`${API_ENDPOINTS.FEED}?userId=${user.id}`), {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            const data = await response.json();
+            setLoading(true);
+            
+            if (isDemoMode()) {
+                // Fetch local posts for the current demo user
+                const allPosts = getDemoPosts();
+                const userFilteredPosts = allPosts.filter(
+                    post => post.userId && post.userId.username === user.username
+                );
+                setMyPosts(userFilteredPosts);
+                calculateStats(userFilteredPosts);
+            } else {
+                // Online Mode
+                const token = getToken();
+                const response = await fetch(getApiUrl(`${API_ENDPOINTS.FEED}?userId=${user.id || user._id}`), {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const data = await response.json();
 
-            if (data.success) {
-                setMyPosts(data.posts);
+                if (data.success) {
+                    setMyPosts(data.posts);
+                    calculateStats(data.posts);
+                }
             }
         } catch (error) {
             console.error('Failed to fetch my posts:', error);
@@ -41,13 +55,13 @@ const Profile = ({ user, onLogout }) => {
         }
     };
 
-    const calculateStats = () => {
-        const totalListens = myPosts.reduce((sum, post) => sum + (post.listens || 0), 0);
-        const avgListens = myPosts.length > 0 ? Math.round(totalListens / myPosts.length) : 0;
+    const calculateStats = (postsList) => {
+        const totalListens = postsList.reduce((sum, post) => sum + (post.stats?.listens || 0), 0);
+        const avgListens = postsList.length > 0 ? Math.round(totalListens / postsList.length) : 0;
 
         setStats({
             totalListens,
-            totalPosts: myPosts.length,
+            totalPosts: postsList.length,
             averageListens: avgListens
         });
     };
@@ -74,8 +88,11 @@ const Profile = ({ user, onLogout }) => {
                     <img src={user.avatar} alt={user.username} />
                 </div>
 
-                <h1>{user.username}</h1>
-                {user.bio && <p className="profile-bio">{user.bio}</p>}
+                <h1>{user.name || `@${user.username}`}</h1>
+                <span className="profile-handle" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                    @{user.username}
+                </span>
+                {user.bio && <p className="profile-bio" style={{ marginTop: '8px' }}>{user.bio}</p>}
 
                 <div className="profile-stats">
                     <div className="stat">
@@ -127,3 +144,4 @@ Profile.propTypes = {
 };
 
 export default Profile;
+

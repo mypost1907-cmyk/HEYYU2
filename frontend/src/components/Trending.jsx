@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import './Trending.css';
 import VoicePost from './VoicePost';
-import { getApiUrl, API_ENDPOINTS } from '../utils/api';
+import { getApiUrl, API_ENDPOINTS, isDemoMode } from '../utils/api';
+import { getTrendingPosts } from '../utils/demoService';
 
 const Trending = () => {
     const [posts, setPosts] = useState([]);
@@ -16,11 +17,19 @@ const Trending = () => {
     const fetchTrendingPosts = async () => {
         try {
             setLoading(true);
-            const response = await fetch(getApiUrl(`${API_ENDPOINTS.TRENDING}?timeframe=${timeframe}`));
-            const data = await response.json();
+            
+            if (isDemoMode()) {
+                // Fetch local trending mock posts
+                const trending = getTrendingPosts(timeframe);
+                setPosts(trending);
+            } else {
+                // Online Mode
+                const response = await fetch(getApiUrl(`${API_ENDPOINTS.TRENDING}?timeframe=${timeframe}`));
+                const data = await response.json();
 
-            if (data.success) {
-                setPosts(data.posts);
+                if (data.success) {
+                    setPosts(data.posts);
+                }
             }
         } catch (error) {
             console.error('Failed to fetch trending posts:', error);
@@ -33,7 +42,7 @@ const Trending = () => {
         <div className="trending-container">
             <header className="trending-header">
                 <h1 className="gradient-text">🔥 Trendler</h1>
-                <p className="trending-subtitle">En  çok dinlenen sesler</p>
+                <p className="trending-subtitle">En çok dinlenen sesler</p>
 
                 <div className="timeframe-selector">
                     <button
@@ -83,3 +92,4 @@ const Trending = () => {
 };
 
 export default Trending;
+

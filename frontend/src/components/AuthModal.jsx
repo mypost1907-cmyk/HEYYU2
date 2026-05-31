@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { GoogleLogin } from '@react-oauth/google';
 import './AuthModal.css';
 import { setToken } from '../utils/auth';
-import { getApiUrl, API_ENDPOINTS } from '../utils/api';
+import { getApiUrl, API_ENDPOINTS, isDemoMode } from '../utils/api';
 
 const AuthModal = ({ onClose, onSuccess }) => {
     const [isLogin, setIsLogin] = useState(true);
@@ -19,6 +19,28 @@ const AuthModal = ({ onClose, onSuccess }) => {
         e.preventDefault();
         setError('');
         setLoading(true);
+
+        if (isDemoMode()) {
+            // Mock authentication for Demo Mode
+            const username = formData.username || formData.email.split('@')[0] || 'demo_kullanici';
+            const mockUser = {
+                _id: 'demo_user_' + Date.now(),
+                name: username.charAt(0).toUpperCase() + username.slice(1),
+                username: username,
+                bio: 'Heyyu2 ses dünyasına hoş geldiniz! 🎙️ Sesinle dünyayı değiştir!',
+                avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
+                stats: { posts: 0, listens: 0, averageListens: 0 }
+            };
+            
+            localStorage.setItem('heyyu2_demo_user', JSON.stringify(mockUser));
+            setToken('mock_demo_token');
+            
+            setTimeout(() => {
+                onSuccess(mockUser);
+                setLoading(false);
+            }, 600);
+            return;
+        }
 
         try {
             const endpoint = isLogin ? API_ENDPOINTS.LOGIN : API_ENDPOINTS.REGISTER;
@@ -38,20 +60,41 @@ const AuthModal = ({ onClose, onSuccess }) => {
                 setToken(data.token);
                 onSuccess(data.user);
             } else {
-                setError(data.error || 'Authentication failed');
+                setError(data.error || 'Giriş başarısız oldu');
             }
         } catch (err) {
-            setError('Network error. Please try again.');
+            setError('Ağ hatası oluştu. Lütfen tekrar deneyin.');
         } finally {
             setLoading(false);
         }
     };
 
     const handleGoogleSuccess = async (credentialResponse) => {
-        try {
-            setLoading(true);
-            setError('');
+        setLoading(true);
+        setError('');
 
+        if (isDemoMode()) {
+            // Mock Google authentication for Demo Mode
+            const mockUser = {
+                _id: 'demo_user_google',
+                name: 'Google Gezgini',
+                username: 'google_gezgini',
+                bio: 'Google ile giriş yapıldı 🌟 Sesinle dünyayı değiştir!',
+                avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=google',
+                stats: { posts: 0, listens: 0, averageListens: 0 }
+            };
+            
+            localStorage.setItem('heyyu2_demo_user', JSON.stringify(mockUser));
+            setToken('mock_demo_token');
+            
+            setTimeout(() => {
+                onSuccess(mockUser);
+                setLoading(false);
+            }, 600);
+            return;
+        }
+
+        try {
             const response = await fetch(getApiUrl(API_ENDPOINTS.GOOGLE_AUTH), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -66,17 +109,17 @@ const AuthModal = ({ onClose, onSuccess }) => {
                 setToken(data.token);
                 onSuccess(data.user);
             } else {
-                setError(data.error || 'Google authentication failed');
+                setError(data.error || 'Google kimlik doğrulaması başarısız');
             }
         } catch (err) {
-            setError('Google login failed. Please try again.');
+            setError('Google girişi başarısız oldu. Lütfen tekrar deneyin.');
         } finally {
             setLoading(false);
         }
     };
 
     const handleGoogleError = () => {
-        setError('Google login failed. Please try again.');
+        setError('Google girişi başarısız oldu. Lütfen tekrar deneyin.');
     };
 
     const handleChange = (e) => {
@@ -92,10 +135,10 @@ const AuthModal = ({ onClose, onSuccess }) => {
                 <button className="modal-close" onClick={onClose}>✕</button>
 
                 <h2 className="modal-title gradient-text">
-                    {isLogin ? 'Welcome Back' : 'Join HEYYU2'}
+                    {isLogin ? 'Tekrar Hoş Geldiniz' : 'HEYYU2\'ye Katılın'}
                 </h2>
                 <p className="modal-subtitle">
-                    {isLogin ? 'Login to continue' : 'Create your account'}
+                    {isLogin ? 'Devam etmek için giriş yapın' : 'Hesabınızı oluşturun'}
                 </p>
 
                 {/* Google Sign-In Button */}
@@ -111,7 +154,7 @@ const AuthModal = ({ onClose, onSuccess }) => {
                 </div>
 
                 <div className="divider">
-                    <span>or</span>
+                    <span>veya</span>
                 </div>
 
                 <form onSubmit={handleSubmit} className="auth-form">
@@ -119,7 +162,7 @@ const AuthModal = ({ onClose, onSuccess }) => {
                         <input
                             type="text"
                             name="username"
-                            placeholder="Username"
+                            placeholder="Kullanıcı Adı"
                             value={formData.username}
                             onChange={handleChange}
                             required={!isLogin}
@@ -130,7 +173,7 @@ const AuthModal = ({ onClose, onSuccess }) => {
                     <input
                         type="email"
                         name="email"
-                        placeholder="Email"
+                        placeholder="E-posta"
                         value={formData.email}
                         onChange={handleChange}
                         required
@@ -140,7 +183,7 @@ const AuthModal = ({ onClose, onSuccess }) => {
                     <input
                         type="password"
                         name="password"
-                        placeholder="Password"
+                        placeholder="Şifre"
                         value={formData.password}
                         onChange={handleChange}
                         required
@@ -156,12 +199,12 @@ const AuthModal = ({ onClose, onSuccess }) => {
                         disabled={loading}
                         style={{ width: '100%', padding: '1rem' }}
                     >
-                        {loading ? 'Please wait...' : (isLogin ? 'Login' : 'Sign Up')}
+                        {loading ? 'Lütfen bekleyin...' : (isLogin ? 'Giriş Yap' : 'Kayıt Ol')}
                     </button>
                 </form>
 
                 <p className="auth-toggle">
-                    {isLogin ? "Don't have an account? " : "Already have an account? "}
+                    {isLogin ? "Hesabınız yok mu? " : "Zaten hesabınız var mı? "}
                     <button
                         onClick={() => {
                             setIsLogin(!isLogin);
@@ -169,7 +212,7 @@ const AuthModal = ({ onClose, onSuccess }) => {
                         }}
                         className="toggle-btn"
                     >
-                        {isLogin ? 'Sign Up' : 'Login'}
+                        {isLogin ? 'Kayıt Ol' : 'Giriş Yap'}
                     </button>
                 </p>
             </div>
@@ -183,3 +226,4 @@ AuthModal.propTypes = {
 };
 
 export default AuthModal;
+

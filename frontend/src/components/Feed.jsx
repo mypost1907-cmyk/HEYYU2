@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import './Feed.css';
 import VoicePost from './VoicePost';
-import { getApiUrl, API_ENDPOINTS } from '../utils/api';
+import { getApiUrl, API_ENDPOINTS, isDemoMode } from '../utils/api';
+import { getDemoPosts } from '../utils/demoService';
 
 const Feed = () => {
     const [posts, setPosts] = useState([]);
@@ -18,12 +19,25 @@ const Feed = () => {
     const fetchPosts = async () => {
         try {
             setLoading(true);
-            const response = await fetch(getApiUrl(`${API_ENDPOINTS.FEED}?page=${page}&limit=10`));
-            const data = await response.json();
+            
+            if (isDemoMode()) {
+                // Demo Mode local retrieval
+                const allDemoPosts = getDemoPosts();
+                const limit = 5;
+                const startIndex = 0;
+                const endIndex = page * limit;
+                
+                setPosts(allDemoPosts.slice(startIndex, endIndex));
+                setHasMore(allDemoPosts.length > endIndex);
+            } else {
+                // Online Mode server request
+                const response = await fetch(getApiUrl(`${API_ENDPOINTS.FEED}?page=${page}&limit=10`));
+                const data = await response.json();
 
-            if (data.success) {
-                setPosts(prev => page === 1 ? data.posts : [...prev, ...data.posts]);
-                setHasMore(data.hasMore);
+                if (data.success) {
+                    setPosts(prev => page === 1 ? data.posts : [...prev, ...data.posts]);
+                    setHasMore(data.hasMore);
+                }
             }
         } catch (error) {
             console.error('Failed to fetch posts:', error);
@@ -31,6 +45,7 @@ const Feed = () => {
             setLoading(false);
         }
     };
+
 
     // Intersection Observer for infinite scroll
     useEffect(() => {
