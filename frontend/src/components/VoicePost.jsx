@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
+import confetti from 'canvas-confetti';
 import './VoicePost.css';
 import Waveform from './Waveform';
 import { getApiUrl, API_ENDPOINTS, isDemoMode } from '../utils/api';
 import { playDemoSpeech, stopDemoSpeech, toggleDemoLike, trackDemoListen } from '../utils/demoService';
+import { playPopSound } from '../utils/audioFx';
 
 const VoicePost = ({ post, autoPlay = false }) => {
     const [isPlaying, setIsPlaying] = useState(false);
@@ -16,6 +18,7 @@ const VoicePost = ({ post, autoPlay = false }) => {
     const audioRef = useRef(null);
     const postRef = useRef(null);
     const ttsTimerRef = useRef(null);
+    const likeBtnRef = useRef(null);
 
     // Sync state if post prop changes
     useEffect(() => {
@@ -164,7 +167,28 @@ const VoicePost = ({ post, autoPlay = false }) => {
         }
     };
 
+    const triggerConfetti = () => {
+        if (!likeBtnRef.current) return;
+        const rect = likeBtnRef.current.getBoundingClientRect();
+        
+        confetti({
+            particleCount: 40,
+            spread: 60,
+            origin: {
+                x: (rect.left + rect.width / 2) / window.innerWidth,
+                y: (rect.top + rect.height / 2) / window.innerHeight
+            },
+            colors: ['#ef4444', '#f97316', '#fcd34d'],
+            disableForReducedMotion: true
+        });
+    };
+
     const handleLikeClick = async () => {
+        if (!localLiked) {
+            triggerConfetti();
+            playPopSound();
+        }
+
         if (isDemoMode()) {
             toggleDemoLike(post._id);
             setLocalLiked(!localLiked);
@@ -294,7 +318,7 @@ const VoicePost = ({ post, autoPlay = false }) => {
                 </div>
                 <div className="post-actions">
                     <button className="action-btn" onClick={() => alert('Sesli yorumlar yakında aktif olacak! 🎙️')}>💬 Yorum</button>
-                    <button className={`action-btn ${localLiked ? 'active' : ''}`} onClick={handleLikeClick}>
+                    <button ref={likeBtnRef} className={`action-btn ${localLiked ? 'active' : ''}`} onClick={handleLikeClick}>
                         🔥 {localLiked ? 'Beğenildi' : 'Beğen'}
                     </button>
                     <button className="action-btn" onClick={() => alert('Düet özelliği çok yakında! 🔄')}>🔄 Düet</button>

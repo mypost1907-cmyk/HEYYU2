@@ -63,7 +63,16 @@ const RecordModal = ({ onClose, onSuccess }) => {
 
     const startRecording = async () => {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            import('../utils/audioFx').then(({ playRecordStartSound }) => playRecordStartSound());
+
+            const stream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    noiseSuppression: true,
+                    echoCancellation: true,
+                    autoGainControl: true,
+                    sampleRate: 48000
+                }
+            });
 
             mediaRecorderRef.current = new MediaRecorder(stream);
             audioChunksRef.current = [];
